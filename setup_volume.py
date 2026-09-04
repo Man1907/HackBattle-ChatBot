@@ -30,6 +30,7 @@ VOLUME_NAME = "hackbattle-vol"
 MODEL_DIR = "/models"
 EMBED_LOCAL = "/models/bge-large-en-v1.5"
 CHROMA_DIR = "/models/chroma"
+CHUNKS_FILE = "/models/chunks.json"
 
 EMBED_REPO = "BAAI/bge-large-en-v1.5"
 
@@ -45,6 +46,9 @@ index_image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install("sentence-transformers", "bm25s", "numpy", "chromadb")
     .add_local_python_source("engine", "store")
+    # ship the local knowledge base into the image so build_index can copy it
+    # onto the Volume, where the serving app reads it
+    .add_local_file("chunks.json", "/tmp/chunks.json")
 )
 
 app = modal.App("hackbattle-setup")
@@ -61,17 +65,24 @@ def download_model():
 @app.function(image=index_image, volumes={MODEL_DIR: volume}, timeout=1800)
 def build_index():
     """Embed the chunks and persist a Chroma collection into the Volume."""
-    import os
+    import os, shutil
+
+    # publish the knowledge base onto the Volume so the serving app reads it
+    shutil.copyfile("/tmp/chunks.json", CHUNKS_FILE)
+
     os.environ["EMBED_MODEL_PATH"] = EMBED_LOCAL
     os.environ["VECTOR_STORE"] = "chroma"
     os.environ["CHROMA_DIR"] = CHROMA_DIR
+    os.environ["CHUNKS_PATH"] = CHUNKS_FILE
     os.environ["LLM_BACKEND"] = "none"      # no LLM needed just to index
 
-    from engine import HackBattleEngine, CHUNKS
+    from engine import HackBattleEngine, load_chunks
+    chunks = load_chunks(CHUNKS_FILE)
     engine = HackBattleEngine()             # embeds + upserts on construction
     count = engine.store.count()
     volume.commit()
-    print(f"Index built: {count} chunks (expected {len(CHUNKS)}) at {CHROMA_DIR}")
+    print(f"Index built: {count} chunks (expected {len(chunks)}) at {CHROMA_DIR}")
+    print(f"Knowledge base published to {CHUNKS_FILE}")
 
 
 @app.local_entrypoint()
