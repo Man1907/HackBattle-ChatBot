@@ -33,6 +33,7 @@ VOLUME_NAME = "hackbattle-vol"
 MODEL_DIR = "/models"
 EMBED_LOCAL = "/models/bge-large-en-v1.5"
 CHROMA_DIR = "/models/chroma"
+CHUNKS_FILE = "/models/chunks.json"
 
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 
@@ -50,6 +51,7 @@ image = (
         "EMBED_MODEL_PATH": EMBED_LOCAL,
         "VECTOR_STORE": "chroma",
         "CHROMA_DIR": CHROMA_DIR,
+        "CHUNKS_PATH": CHUNKS_FILE,
         "LLM_BACKEND": "groq",
         # must be a model your Groq key can actually call
         "GROQ_MODEL": "openai/gpt-oss-20b",

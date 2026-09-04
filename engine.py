@@ -94,104 +94,69 @@ Response guidelines:
 
 
 # ---------------------------------------------------------------------------
-# Knowledge base
+# Knowledge base — loaded from a JSON file, not hardcoded
 # ---------------------------------------------------------------------------
-CHUNKS = [
-    ("overview",
-     "About HackBattle: HackBattle is a dynamic 36-hour hackathon organised by "
-     "IEEE CS as part of graVITas 2026 at VIT (Vellore Institute of Technology). "
-     "Innovators, creators, and problem solvers come together to code, "
-     "collaborate, and compete, turning ideas into real-world solutions. "
-     "Alongside the competition there are inspiring sessions from industry "
-     "leaders offering insights, guidance, and networking."),
+# CHUNKS_PATH points at a JSON file of the form:
+#   {"chunks": [{"topic": "prizes", "text": "Prizes: ..."}, ...]}
+# In production this lives on the Modal Volume, so the content can be updated
+# by uploading a new file and re-running the index build — no code change and
+# no redeploy. Locally it defaults to ./chunks.json next to this file.
+CHUNKS_PATH = os.environ.get(
+    "CHUNKS_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "chunks.json"))
 
-    ("dates and duration",
-     "Dates and duration: HackBattle is a 36-hour hackathon held on 12-13 "
-     "September 2026. It runs from 8:00 am on 12 September to 8:00 pm on 13 "
-     "September 2026. It is an overnight coding marathon."),
 
-    ("team size and eligibility",
-     "Teams and eligibility: Team size must be 3 to 5 members. Solo "
-     "participation is NOT permitted — everyone must be part of a team. "
-     "Participants can be from any background or discipline. Registration is "
-     "done individually: if you register without a team, you will be placed "
-     "with team members before the event begins, so you can sign up alone but "
-     "you cannot compete alone. Teams must complete official registration "
-     "before the event starts."),
+def load_chunks(path: str | None = None) -> list[tuple[str, str]]:
+    """Read the knowledge base. Returns [(topic, text), ...].
 
-    ("project development rules",
-     "Project development rules: All coding and development must happen within "
-     "the 36-hour hackathon window. Pre-built projects or existing codebases "
-     "are strictly prohibited. Open-source libraries, frameworks, and tools are "
-     "permitted with proper attribution. Projects must align with the problem "
-     "statements or themes announced at the event start. Both software and "
-     "hardware projects are welcome, but hardware components and devices will "
-     "NOT be provided — teams must arrange their own."),
+    Raises with a clear message rather than silently serving an empty corpus —
+    a bot with no chunks would answer "I don't know" to everything, which is a
+    confusing failure to debug.
+    """
+    import json
+    p = path or CHUNKS_PATH
+    if not os.path.exists(p):
+        raise FileNotFoundError(
+            f"Knowledge base not found at {p}. Set CHUNKS_PATH, or place "
+            f"chunks.json next to engine.py.")
+    with open(p, encoding="utf-8") as f:
+        data = json.load(f)
 
-    ("code of conduct",
-     "Code of conduct: There is zero tolerance for plagiarism or copying code "
-     "from other teams, which results in immediate disqualification. Respectful "
-     "conduct is mandatory. Students must follow the VIT code of conduct. All "
-     "participants must adhere to venue guidelines including safety, "
-     "cleanliness, and discipline."),
+    raw = data.get("chunks", data) if isinstance(data, dict) else data
+    chunks = []
+    for i, item in enumerate(raw):
+        if isinstance(item, dict):
+            topic, text = item.get("topic"), item.get("text")
+        elif isinstance(item, (list, tuple)) and len(item) == 2:
+            topic, text = item
+        else:
+            raise ValueError(f"chunk {i} in {p} is not a "
+                             f"{{topic, text}} object or [topic, text] pair")
+        if not (isinstance(topic, str) and topic.strip()):
+            raise ValueError(f"chunk {i} in {p} has an empty topic")
+        if not (isinstance(text, str) and text.strip()):
+            raise ValueError(f"chunk {i} ({topic}) in {p} has empty text")
+        chunks.append((topic.strip(), text.strip()))
 
-    ("logistics and what to bring",
-     "Logistics and what to bring: A valid ID is required for all participants. "
-     "Teams must bring their own laptops, hardware components, and accessories. "
-     "Internet and basic infrastructure will be provided for on-site events. "
-     "Participants must remain within the venue throughout the event unless "
-     "given permission by the organizers."),
+    if not chunks:
+        raise ValueError(f"{p} contains no chunks")
+    return chunks
 
-    ("submissions and deadlines",
-     "Submissions and deadlines: The GitHub repository link must be shared at "
-     "the beginning of the hackathon. All work must be committed to that same "
-     "initial repository — no new repositories are accepted. Late submissions "
-     "will NOT be accepted. The final submission must include the complete "
-     "source code in the designated repository and a documentation/README "
-     "file."),
 
-    ("general rules",
-     "General rules: Any rule violation may result in disqualification. The "
-     "organizers reserve the right to modify rules, schedules, or guidelines as "
-     "necessary. By participating, teams grant the organizers the right to "
-     "showcase their projects on official platforms."),
+def chunks_fingerprint(chunks) -> str:
+    """Short hash of the corpus, stored alongside the vectors.
 
-    ("evaluation criteria",
-     "Evaluation criteria and weightage: Innovation and Creativity 25%; "
-     "Technical Complexity and Implementation 25%; Problem Solving and "
-     "Relevance 20%; User Experience and Design 10%; Impact and Scalability "
-     "10%; Presentation and Demonstration 10%."),
+    Lets the engine detect edited content even when the CHUNK COUNT is
+    unchanged — a count check alone would miss a reworded chunk and keep
+    serving stale answers.
+    """
+    import hashlib
+    h = hashlib.sha256()
+    for topic, text in chunks:
+        h.update(topic.encode()); h.update(b"\x00")
+        h.update(text.encode()); h.update(b"\x00")
+    return h.hexdigest()[:16]
 
-    ("prizes",
-     "Prizes: HackBattle awards a 1st Prize, a 2nd Prize, a 3rd Prize, and a "
-     "Best Freshers prize."),
-
-    ("contacts",
-     "Point of contact (organizers): Aniket Bhayana (24BCE2989), phone "
-     "8861924025; Gracy Mehndiratta (24BCE2987), phone 8700945939; Vishal "
-     "Kumar Pradhwani (24BCE0766), phone 7029412141."),
-
-    ("classes and on-duty",
-     "Classes and OD: If a participant has classes during the hackathon, they "
-     "will be given OD (On Duty) for the hackathon. Registration is done "
-     "individually and those without a team are placed with members before the "
-     "event. Breaks will be given for meals."),
-
-    ("schedule day 1",
-     "Provisional schedule, day 1 (12 September 2026, times tentative): "
-     "Registration and team formation 8:00-10:00 am; Opening ceremony 10:00 am "
-     "(welcome, briefing, rules, introduction of judges and mentors); "
-     "Development phase from 11:00 am; Lunch break 12:30-2:00 pm; Hacking "
-     "resumes 2:00 pm; Speaker session 3:00-4:00 pm; Review I 4:00-7:00 pm; "
-     "Dinner break 7:00-9:00 pm; Hacking 9:00 pm onward; Review 2 around 1:00-"
-     "3:00 am; Ice-breaker session 3:00-4:00 am."),
-
-    ("schedule day 2",
-     "Provisional schedule, day 2 (13 September 2026, times tentative): Hacking "
-     "continues into the morning; Review 3 around 12:00-1:00 pm; Lunch break "
-     "1:00-2:00 pm; Integration of the work 2:00-4:00 pm; Final team pitches "
-     "4:00-6:00 pm; Results announcement and closing ceremony 6:00-8:00 pm."),
-]
 
 
 # ---------------------------------------------------------------------------
@@ -303,20 +268,31 @@ def build_llm():
 # The engine
 # ---------------------------------------------------------------------------
 class HackBattleEngine:
-    def __init__(self, embedder=None, store=None, llm=None):
-        self.topics = [c[0] for c in CHUNKS]
-        self.texts = [c[1] for c in CHUNKS]
+    def __init__(self, embedder=None, store=None, llm=None, chunks=None):
+        chunks = chunks or load_chunks()
+        self.chunks = chunks
+        self.topics = [c[0] for c in chunks]
+        self.texts = [c[1] for c in chunks]
+        self.fingerprint = chunks_fingerprint(chunks)
         self.embedder = embedder or Embedder()
         self.llm = llm if llm is not None else build_llm()
 
-        # dense side — via the pluggable store
+        # Dense side — via the pluggable store.
+        # Re-embed when the corpus CONTENT changed, not merely when the count
+        # changed: rewording a chunk leaves the count identical, and a
+        # count-only check would keep serving stale vectors.
         self.store = store or get_store()
-        if self.store.count() != len(CHUNKS):
+        if self._needs_reindex():
+            print(f"Indexing {len(chunks)} chunks (fingerprint {self.fingerprint}) ...")
             embs = self.embedder.encode(self.texts)
             self.store.upsert(
-                ids=[f"chunk-{i}" for i in range(len(CHUNKS))],
+                ids=[f"chunk-{i}" for i in range(len(chunks))],
                 texts=self.texts, embeddings=embs,
-                metadatas=[{"topic": t} for t in self.topics])
+                metadatas=[{"topic": t, "fp": self.fingerprint}
+                           for t in self.topics])
+        else:
+            print(f"Loaded {self.store.count()} chunks from the store "
+                  f"(fingerprint {self.fingerprint})")
 
         # sparse side — BM25 catches exact-keyword questions dense search blurs
         import bm25s
@@ -326,6 +302,20 @@ class HackBattleEngine:
                                        show_progress=False), show_progress=False)
 
         self._cache: dict[str, dict] = {}
+
+    def _needs_reindex(self) -> bool:
+        """True when the store is empty, the count differs, or the stored
+        fingerprint does not match the current corpus."""
+        try:
+            if self.store.count() != len(self.chunks):
+                return True
+            hits = self.store.query(np.zeros(self.embedder.dim, "float32"), 1)
+            if not hits:
+                return True
+            stored_fp = (hits[0][2] or {}).get("fp")
+            return stored_fp != self.fingerprint
+        except Exception:
+            return True
 
     # ---- retrieval -------------------------------------------------------
     def _dense(self, query: str, k: int):
