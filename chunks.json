@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "description": "HackBattle FAQ knowledge base. Each chunk is self-contained and starts with its topic label so keyword search has a strong signal. Replace <email> in the contacts chunk with the real address before deploying.",
+  "chunks": [
+    {
+      "topic": "overview",
+      "text": "About HackBattle: HackBattle is a dynamic 36-hour hackathon organised by IEEE CS as part of graVITas 2026 at VIT (Vellore Institute of Technology). Innovators, creators, and problem solvers come together to code, collaborate, and compete, turning ideas into real-world solutions. Alongside the competition there are inspiring sessions from industry leaders offering insights, guidance, and networking."
+    },
+    {
+      "topic": "dates and duration",
+      "text": "Dates and duration: HackBattle is a 36-hour hackathon held on 12-13 September 2026. It runs from 8:00 am on 12 September to 8:00 pm on 13 September 2026. It is an overnight coding marathon."
+    },
+    {
+      "topic": "team size and eligibility",
+      "text": "Teams and eligibility: Team size must be 3 to 5 members. Solo participation is NOT permitted — everyone must be part of a team. Participants can be from any background or discipline. Registration is done individually: if you register without a team, you will be placed with team members before the event begins, so you can sign up alone but you cannot compete alone. Teams must complete official registration before the event starts."
+    },
+    {
+      "topic": "project development rules",
+      "text": "Project development rules: All coding and development must happen within the 36-hour hackathon window. Pre-built projects or existing codebases are strictly prohibited. Open-source libraries, frameworks, and tools are permitted with proper attribution. Projects must align with the problem statements or themes announced at the event start. Both software and hardware projects are welcome, but hardware components and devices will NOT be provided — teams must arrange their own."
+    },
+    {
+      "topic": "code of conduct",
+      "text": "Code of conduct: There is zero tolerance for plagiarism or copying code from other teams, which results in immediate disqualification. Respectful conduct is mandatory. Students must follow the VIT code of conduct. All participants must adhere to venue guidelines including safety, cleanliness, and discipline."
+    },
+    {
+      "topic": "logistics and what to bring",
+      "text": "Logistics and what to bring: A valid ID is required for all participants. Teams must bring their own laptops, hardware components, and accessories. Internet and basic infrastructure will be provided for on-site events. Participants must remain within the venue throughout the event unless given permission by the organizers."
+    },
+    {
+      "topic": "submissions and deadlines",
+      "text": "Submissions and deadlines: The GitHub repository link must be shared at the beginning of the hackathon. All work must be committed to that same initial repository — no new repositories are accepted. Late submissions will NOT be accepted. The final submission must include the complete source code in the designated repository and a documentation/README file."
+    },
+    {
+      "topic": "general rules",
+      "text": "General rules: Any rule violation may result in disqualification. The organizers reserve the right to modify rules, schedules, or guidelines as necessary. By participating, teams grant the organizers the right to showcase their projects on official platforms."
+    },
+    {
+      "topic": "evaluation criteria",
+      "text": "Evaluation criteria and weightage: Innovation and Creativity 25%; Technical Complexity and Implementation 25%; Problem Solving and Relevance 20%; User Experience and Design 10%; Impact and Scalability 10%; Presentation and Demonstration 10%."
+    },
+    {
+      "topic": "prizes",
+      "text": "Prizes: HackBattle awards a 1st Prize, a 2nd Prize, a 3rd Prize, and a Best Freshers prize."
+    },
+    {
+      "topic": "contacts",
+      "text": "Point of contact: For any questions about HackBattle, contact the respective host team at <email>."
+    },
+    {
+      "topic": "classes and on-duty",
+      "text": "Classes and OD: If a participant has classes during the hackathon, they will be given OD (On Duty) for the hackathon. Registration is done individually and those without a team are placed with members before the event. Breaks will be given for meals."
+    },
+    {
+      "topic": "schedule day 1",
+      "text": "Provisional schedule, day 1 (12 September 2026, times tentative): Registration and team formation 8:00-10:00 am; Opening ceremony 10:00 am (welcome, briefing, rules, introduction of judges and mentors); Development phase from 11:00 am; Lunch break 12:30-2:00 pm; Hacking resumes 2:00 pm; Speaker session 3:00-4:00 pm; Review I 4:00-7:00 pm; Dinner break 7:00-9:00 pm; Hacking 9:00 pm onward; Review 2 around 1:00-3:00 am; Ice-breaker session 3:00-4:00 am."
+    },
+    {
+      "topic": "schedule day 2",
+      "text": "Provisional schedule, day 2 (13 September 2026, times tentative): Hacking continues into the morning; Review 3 around 12:00-1:00 pm; Lunch break 1:00-2:00 pm; Integration of the work 2:00-4:00 pm; Final team pitches 4:00-6:00 pm; Results announcement and closing ceremony 6:00-8:00 pm."
+    }
+  ]
+}
