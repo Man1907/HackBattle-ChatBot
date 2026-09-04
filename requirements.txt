@@ -6,16 +6,17 @@ pydantic>=2.6.0
 # ── Retrieval ──
 sentence-transformers>=2.7.0
 bm25s>=0.2.0
+rapidfuzz>=3.6.0
 numpy>=1.26.0
 
-# ── LLM (Groq via OpenAI-compatible API) ──
+# ── Vector store ──
+chromadb>=0.5.0
+# psycopg[binary]>=3.1.0     # only for VECTOR_STORE=pgvector
+# pgvector>=0.2.5
+
+# ── LLM (Groq via the OpenAI-compatible API) ──
 openai>=1.30.0
 python-dotenv>=1.0.0
-
-# ── Vector store (pick one; memory needs nothing) ──
-chromadb>=0.5.0
-# psycopg[binary]>=3.1.0    # for VECTOR_STORE=pgvector
-# pgvector>=0.2.5
 
 # ── Deployment ──
 modal>=0.64.0
