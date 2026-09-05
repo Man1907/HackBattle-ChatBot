@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "description": "HackBattle FAQ knowledge base. Each chunk is self-contained and starts with its topic label so keyword search has a strong signal. Replace <email> in the contacts chunk with the real address before deploying.",
+  "description": "HackBattle FAQ knowledge base. Each chunk is self-contained and starts with its topic label. Abbreviations (POC, OD, repo) and colloquial phrasings are included so keyword search matches how people actually ask. Replace <email> with the real address.",
   "chunks": [
     {
       "topic": "overview",
@@ -8,15 +8,15 @@
     },
     {
       "topic": "dates and duration",
-      "text": "Dates and duration: HackBattle is a 36-hour hackathon held on 12-13 September 2026. It runs from 8:00 am on 12 September to 8:00 pm on 13 September 2026. It is an overnight coding marathon."
+      "text": "Dates, timing and duration: HackBattle is a 36-hour hackathon held on 12-13 September 2026. It starts at 8:00 am on 12 September and ends at 8:00 pm on 13 September 2026. It is an overnight coding marathon."
     },
     {
       "topic": "team size and eligibility",
-      "text": "Teams and eligibility: Team size must be 3 to 5 members. Solo participation is NOT permitted — everyone must be part of a team. Participants can be from any background or discipline. Registration is done individually: if you register without a team, you will be placed with team members before the event begins, so you can sign up alone but you cannot compete alone. Teams must complete official registration before the event starts."
+      "text": "Teams, team size, registration and eligibility: Team size must be 3 to 5 members. Solo participation is NOT permitted - everyone must be part of a team, and you cannot participate alone or individually as a single person. Participants can be from any background, branch or discipline. Registration (sign up) is done individually: if you register without a team, you will be placed with team members before the event begins, so you can sign up alone but you cannot compete alone. Teams must complete official registration before the event starts."
     },
     {
       "topic": "project development rules",
-      "text": "Project development rules: All coding and development must happen within the 36-hour hackathon window. Pre-built projects or existing codebases are strictly prohibited. Open-source libraries, frameworks, and tools are permitted with proper attribution. Projects must align with the problem statements or themes announced at the event start. Both software and hardware projects are welcome, but hardware components and devices will NOT be provided — teams must arrange their own."
+      "text": "Project development rules and themes: All coding and development must happen within the 36-hour hackathon window. Pre-built projects or existing codebases are strictly prohibited. Open-source libraries, frameworks, APIs and tools are permitted with proper attribution. Projects must align with the problem statements or themes announced at the event start. Both software and hardware projects are welcome, but hardware components and devices will NOT be provided - teams must arrange their own."
     },
     {
       "topic": "code of conduct",
@@ -24,11 +24,11 @@
     },
     {
       "topic": "logistics and what to bring",
-      "text": "Logistics and what to bring: A valid ID is required for all participants. Teams must bring their own laptops, hardware components, and accessories. Internet and basic infrastructure will be provided for on-site events. Participants must remain within the venue throughout the event unless given permission by the organizers."
+      "text": "Logistics, venue and what to bring: A valid ID (ID card) is required for all participants. Teams must bring their own laptops, chargers, hardware components, and accessories. Internet, WiFi and basic infrastructure will be provided for on-site events. Participants must stay within the venue throughout the event unless given permission by the organizers. Meals and food breaks are provided during the hackathon."
     },
     {
       "topic": "submissions and deadlines",
-      "text": "Submissions and deadlines: The GitHub repository link must be shared at the beginning of the hackathon. All work must be committed to that same initial repository — no new repositories are accepted. Late submissions will NOT be accepted. The final submission must include the complete source code in the designated repository and a documentation/README file."
+      "text": "Submissions, deadlines and how to submit: The GitHub repository link (repo link) must be shared at the beginning of the hackathon. All work must be committed to that same initial repository - no new repositories are accepted. Late submissions will NOT be accepted after the deadline. The final submission must include the complete source code in the designated repository and a documentation or README file."
     },
     {
       "topic": "general rules",
@@ -36,19 +36,19 @@
     },
     {
       "topic": "evaluation criteria",
-      "text": "Evaluation criteria and weightage: Innovation and Creativity 25%; Technical Complexity and Implementation 25%; Problem Solving and Relevance 20%; User Experience and Design 10%; Impact and Scalability 10%; Presentation and Demonstration 10%."
+      "text": "Evaluation criteria, judging and weightage: Projects are judged on Innovation and Creativity 25%; Technical Complexity and Implementation 25%; Problem Solving and Relevance 20%; User Experience and Design 10%; Impact and Scalability 10%; Presentation and Demonstration 10%."
     },
     {
       "topic": "prizes",
-      "text": "Prizes: HackBattle awards a 1st Prize, a 2nd Prize, a 3rd Prize, and a Best Freshers prize."
+      "text": "Prizes and rewards: HackBattle awards a 1st Prize (first place), a 2nd Prize (second place), a 3rd Prize (third place), and a Best Freshers prize for first-year students. Prizes are given out and winners announced at the results announcement and closing ceremony on day 2."
     },
     {
       "topic": "contacts",
-      "text": "Point of contact: For any questions about HackBattle, contact the respective host team at <email>."
+      "text": "Point of contact (POC) and contact details: For any questions about HackBattle, contact the respective host team at <email>. The POCs are the organizing team from IEEE CS. Reach out to the organisers by email for queries about registration, rules, or logistics."
     },
     {
       "topic": "classes and on-duty",
-      "text": "Classes and OD: If a participant has classes during the hackathon, they will be given OD (On Duty) for the hackathon. Registration is done individually and those without a team are placed with members before the event. Breaks will be given for meals."
+      "text": "Classes, OD and attendance: If a participant has classes during the hackathon, they will be given OD (On Duty / on-duty attendance) for the hackathon, so attendance is covered. Registration is done individually and those without a team are placed with members before the event. Breaks will be given for meals."
     },
     {
       "topic": "schedule day 1",
