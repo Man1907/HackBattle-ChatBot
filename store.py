@@ -9,6 +9,8 @@ else in the app changes.
                            Zero setup. Right for a few hundred chunks.
     VECTOR_STORE=chroma    Persistent local directory (or a Chroma server).
                            Right for thousands to low millions of chunks.
+    VECTOR_STORE=faiss     FAISS index + JSON metadata sidecar. Fastest at
+                           large scale; the sidecar is the trade-off.
     VECTOR_STORE=pgvector  Postgres + the pgvector extension.
                            Right when vectors live beside relational data.
 
@@ -32,6 +34,7 @@ import numpy as np
 BACKEND = os.environ.get("VECTOR_STORE", "memory").lower()
 CHROMA_DIR = os.environ.get("CHROMA_DIR", "./chroma_store")
 CHROMA_COLLECTION = os.environ.get("CHROMA_COLLECTION", "hackbattle")
+FAISS_DIR = os.environ.get("FAISS_DIR", "./faiss_store")
 PG_DSN = os.environ.get("PG_DSN", "")          # e.g. postgresql://user:pw@host/db
 PG_TABLE = os.environ.get("PG_TABLE", "chunks")
 
@@ -158,11 +161,75 @@ class PgVectorStore(BaseStore):
             return int(cur.fetchone()[0])
 
 
+class FaissStore(BaseStore):
+    """FAISS index plus a JSON sidecar.
+
+    FAISS stores ONLY vectors — no ids, text, or metadata — so everything else
+    lives in a parallel sidecar file keyed by row position. That extra moving
+    part is the main cost of choosing FAISS over Chroma at small scale; it pays
+    off at hundreds of thousands of vectors, where FAISS is markedly faster.
+
+    Uses IndexFlatIP: exact inner product, which equals cosine similarity on
+    the L2-normalised vectors this project produces.
+    """
+
+    def __init__(self, path: str = FAISS_DIR):
+        import faiss
+        self.faiss = faiss
+        self.dir = path
+        os.makedirs(path, exist_ok=True)
+        self.index_path = os.path.join(path, "index.faiss")
+        self.meta_path = os.path.join(path, "meta.json")
+        self.index = None
+        self.ids, self.texts, self.metas = [], [], []
+        if os.path.exists(self.index_path) and os.path.exists(self.meta_path):
+            import json
+            self.index = faiss.read_index(self.index_path)
+            with open(self.meta_path, encoding="utf-8") as f:
+                side = json.load(f)
+            self.ids = side["ids"]
+            self.texts = side["texts"]
+            self.metas = side["metas"]
+
+    def upsert(self, ids, texts, embeddings, metadatas):
+        import json
+        embs = np.asarray(embeddings, dtype="float32")
+        # Rebuild wholesale: the corpus is small and always written in full,
+        # so incremental updates would add complexity for no benefit.
+        self.index = self.faiss.IndexFlatIP(embs.shape[1])
+        self.index.add(embs)
+        self.ids, self.texts, self.metas = list(ids), list(texts), list(metadatas)
+        self.faiss.write_index(self.index, self.index_path)
+        with open(self.meta_path, "w", encoding="utf-8") as f:
+            json.dump({"ids": self.ids, "texts": self.texts,
+                       "metas": self.metas}, f)
+
+    def query(self, embedding, k: int):
+        if self.index is None or not self.ids:
+            return []
+        q = np.asarray(embedding, dtype="float32").reshape(1, -1)
+        k = max(1, min(k, len(self.ids)))
+        scores, idx = self.index.search(q, k)
+        out = []
+        for score, i in zip(scores[0], idx[0]):
+            if i < 0:
+                continue
+            # inner product on unit vectors IS cosine similarity, so this is
+            # already on the same scale the other backends return
+            out.append((self.ids[i], self.texts[i], self.metas[i], float(score)))
+        return out
+
+    def count(self):
+        return len(self.ids)
+
+
 # ---------------------------------------------------------------------------
 def get_store(backend: str | None = None, **kwargs) -> BaseStore:
     b = (backend or BACKEND).lower()
     if b == "chroma":
         return ChromaStore(**kwargs)
+    if b == "faiss":
+        return FaissStore(**kwargs)
     if b in ("pgvector", "postgres", "pg"):
         return PgVectorStore(**kwargs)
     return MemoryStore()

@@ -44,7 +44,7 @@ download_image = (
 
 index_image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("sentence-transformers", "bm25s", "numpy", "chromadb")
+    .pip_install("sentence-transformers", "bm25s", "numpy", "chromadb", "faiss-cpu", "rapidfuzz")
     .add_local_python_source("engine", "store")
     # ship the local knowledge base into the image so build_index can copy it
     # onto the Volume, where the serving app reads it

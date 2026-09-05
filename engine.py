@@ -44,7 +44,7 @@ EMBED_MODEL_PATH = os.environ.get("EMBED_MODEL_PATH", "")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "BAAI/bge-large-en-v1.5")
 LLM_BACKEND = os.environ.get("LLM_BACKEND", "groq").lower()
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
@@ -53,9 +53,52 @@ TOP_K = int(os.environ.get("TOP_K", "5"))
 RRF_K = 60
 DONT_KNOW = "I don't know"
 
-# bge models are trained with an instruction prefix on the QUERY side only.
-# Omitting it measurably degrades retrieval, so it is applied in _embed_query.
+# bge models are trained with an instruction prefix on the QUERY side only
+# (documents are embedded as-is). Omitting it measurably degrades retrieval.
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+
+
+# Typo correction: rapidfuzz ratio a token must reach before it is rewritten.
+# High on purpose — see correct_typos() for why over-correction is harmful.
+FUZZY_MIN_SCORE = int(os.environ.get("FUZZY_MIN_SCORE", "78"))
+
+# Ordinary English words that will never be in a small event corpus but must
+# never be "corrected" into something that is — rewriting "your" to "you", or
+# "does" to "do", changes what the user asked. PROTECTION list.
+COMMON_WORDS = {
+    "the", "and", "for", "are", "you", "your", "yours", "our", "ours", "can",
+    "could", "would", "should", "will", "shall", "may", "might", "must",
+    "have", "has", "had", "does", "did", "doing", "done", "was", "were",
+    "been", "being", "with", "from", "into", "onto", "about", "than", "then",
+    "there", "their", "them", "they", "this", "that", "these", "those",
+    "what", "when", "where", "which", "who", "whom", "why", "how", "any",
+    "all", "some", "each", "more", "most", "much", "many", "not", "but",
+    "get", "got", "give", "take", "make", "need", "want", "know", "tell",
+    "please", "thanks", "hello", "hey", "also", "just", "only", "very",
+}
+
+# Words a mistyped token may be corrected TOWARD, in addition to the corpus
+# vocabulary. Corpus-only matching cannot repair "wen" -> "when", because
+# "when" never appears in the chunks. TARGET list.
+QUESTION_WORDS = {
+    "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
+    "will", "would", "can", "could", "should", "does", "did", "are", "were",
+    "there", "their", "they", "them", "this", "that", "these", "those",
+    "about", "with", "from", "have", "has", "need", "want", "know",
+    "give", "given", "gets", "getting", "happen", "happens", "start",
+    "starts", "begin", "begins", "ends", "take", "takes", "held",
+    "distributed", "announced", "awarded", "allowed", "required",
+    "provided", "included",
+}
+
+# Follow-up detection. Above FOLLOWUP_MAX_TOKENS a question is assumed
+# self-contained and left untouched; prepending the previous topic to a
+# self-contained question drags retrieval toward the WRONG chunk.
+FOLLOWUP_MAX_TOKENS = int(os.environ.get("FOLLOWUP_MAX_TOKENS", "7"))
+FOLLOWUP_SHORT_TOKENS = int(os.environ.get("FOLLOWUP_SHORT_TOKENS", "4"))
+FOLLOWUP_OPENERS = {"and", "what", "how", "who", "when", "where", "why", "also"}
+FOLLOWUP_PRONOUNS = {"it", "its", "they", "them", "their", "theirs",
+                     "this", "that", "these", "those", "there", "he", "she"}
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
@@ -217,13 +260,14 @@ class GroqLLM:
             raise RuntimeError("GROQ_API_KEY not set")
         self.client = OpenAI(base_url=GROQ_BASE_URL, api_key=key)
 
-    def chat(self, system: str, user: str, history=None) -> str:
+    def chat(self, system: str, user: str, history=None,
+             max_tokens: int = 400) -> str:
         messages = [{"role": "system", "content": system}]
         messages += sanitize_history(history)
         messages.append({"role": "user", "content": user})
         resp = self.client.chat.completions.create(
             model=GROQ_MODEL, messages=messages,
-            max_tokens=400, temperature=0.0)
+            max_tokens=max_tokens, temperature=0.0)
         return resp.choices[0].message.content.strip()
 
 
@@ -238,8 +282,10 @@ class OllamaLLM:
         with urllib.request.urlopen(f"{OLLAMA_URL}/api/tags", timeout=5):
             pass
 
-    def chat(self, system: str, user: str, history=None) -> str:
+    def chat(self, system: str, user: str, history=None,
+             max_tokens: int = 400) -> str:
         payload = {"model": OLLAMA_MODEL, "stream": False,
+                   "options_max_tokens": max_tokens,
                    "options": {"temperature": 0.0},
                    "messages": [{"role": "system", "content": system}]
                                + sanitize_history(history)
@@ -303,6 +349,17 @@ class HackBattleEngine:
 
         self._cache: dict[str, dict] = {}
 
+        # Vocabulary for typo correction: every token in the corpus. Small
+        # (a few hundred words for 14 chunks), so building it is instant.
+        # Vocabulary for typo correction: every token in the corpus.
+        self.vocab = set()
+        for topic, text in chunks:
+            self.vocab.update(tokenize(topic))
+            self.vocab.update(tokenize(text))
+        # Words a typo may be corrected TOWARD: corpus words plus question
+        # words. Separate from COMMON_WORDS, which are protected FROM rewriting.
+        self._correction_targets = self.vocab | QUESTION_WORDS
+
     def _needs_reindex(self) -> bool:
         """True when the store is empty, the count differs, or the stored
         fingerprint does not match the current corpus."""
@@ -316,6 +373,69 @@ class HackBattleEngine:
             return stored_fp != self.fingerprint
         except Exception:
             return True
+
+    # ---- query preprocessing ---------------------------------------------
+    def correct_typos(self, query: str) -> tuple[str, bool]:
+        """Repair query tokens against the corpus vocabulary.
+
+        BM25 is exact-match, so a typo silently removes the sparse half of
+        hybrid retrieval — and a bad enough typo can push the query under the
+        relevance floor and get it refused as off-topic.
+
+        Correction is deliberately CONSERVATIVE: a high threshold and a length
+        floor stop legitimate out-of-corpus words ("sponsors", "parking") from
+        being rewritten into something the corpus happens to contain.
+        """
+        from rapidfuzz import process, fuzz
+        out, changed = [], False
+        for tok in tokenize(query):
+            # Never REWRITE a short token or an ordinary English function word.
+            if len(tok) <= 2 or tok in self.vocab or tok in COMMON_WORDS:
+                out.append(tok)
+                continue
+            match = process.extractOne(tok, self._correction_targets,
+                                       scorer=fuzz.ratio)
+            if match and match[1] >= FUZZY_MIN_SCORE:
+                out.append(match[0])
+                changed = True
+            else:
+                out.append(tok)          # leave genuinely unknown words alone
+        return " ".join(out), changed
+
+    @staticmethod
+    def contextualize(query: str, history: list | None) -> tuple[str, bool]:
+        """Prepend the previous user turn when the query looks dependent.
+
+        History already reaches the LLM, so generation handles follow-ups; the
+        gap is RETRIEVAL, which runs on the literal text. "And their contact
+        details?" has no topic words to match on. Concatenation is a cheap
+        stand-in for LLM query rewriting: no extra API call, no added latency.
+        """
+        if not history:
+            return query, False
+        toks = tokenize(query)
+        if not toks:
+            return query, False
+        if len(toks) > FOLLOWUP_MAX_TOKENS:
+            return query, False
+        looks_dependent = (
+            len(toks) <= FOLLOWUP_SHORT_TOKENS
+            or toks[0] in FOLLOWUP_OPENERS
+            or any(t in FOLLOWUP_PRONOUNS for t in toks)
+        )
+        if not looks_dependent:
+            return query, False
+        prev = next((h.get("content", "") for h in reversed(history)
+                     if isinstance(h, dict) and h.get("role") == "user"), "")
+        if not prev.strip():
+            return query, False
+        return f"{prev.strip()} {query.strip()}", True
+
+    def prepare_query(self, query: str, history: list | None = None):
+        """Full preprocessing pipeline: contextualise, then fix typos."""
+        contextual, ctx_used = self.contextualize(query, history)
+        corrected, fixed = self.correct_typos(contextual)
+        return corrected, {"context_used": ctx_used, "typos_fixed": fixed}
 
     # ---- retrieval -------------------------------------------------------
     def _dense(self, query: str, k: int):
@@ -351,35 +471,48 @@ class HackBattleEngine:
 
     # ---- answering -------------------------------------------------------
     def answer(self, query: str, history: list | None = None) -> dict:
+        # Cache FIRST, keyed on the raw input: a repeated question must not pay
+        # for the rewrite call again.
         key = query.strip().lower()
         if key in self._cache:
             return {**self._cache[key], "cached": True}
 
-        idxs, top_score = self.search(query)
+        # Preprocess BEFORE retrieval: contextualise dependent follow-ups and
+        # repair typos. The PROCESSED query is what gets searched and scored
+        # against the relevance floor.
+        search_query, meta = self.prepare_query(query, history)
+
+        idxs, top_score = self.search(search_query)
 
         # Guardrail: nothing relevant -> the exact "I don't know" contract.
         if not idxs or top_score < RELEVANCE_FLOOR:
-            return self._finish(key, DONT_KNOW, [], False)
+            return self._finish(key, DONT_KNOW, [], False, meta)
 
         context = "\n\n".join(f"A: {self.texts[i]}" for i in idxs)
         sources = [self.topics[i] for i in idxs]
+        # The LLM answers from the user's ORIGINAL wording plus real history;
+        # only retrieval used the rewrite.
         user_msg = (f"Context from documents:\n{context}\n\n"
                     f"User's Question: {query}\n\nAnswer:")
 
         if self.llm is None:
-            return self._finish(key, self._fallback(idxs), sources, True)
+            return self._finish(key, self._fallback(idxs), sources, True, meta)
         try:
             reply = self.llm.chat(SYSTEM_PROMPT, user_msg, history)
         except Exception as e:
             if os.environ.get("DEBUG_LLM"):
                 print("LLM call failed:", e)
-            return self._finish(key, self._fallback(idxs), sources, True)
+            return self._finish(key, self._fallback(idxs), sources, True, meta)
 
         grounded = reply.strip().lower().rstrip(".") != DONT_KNOW.lower()
-        return self._finish(key, reply, sources if grounded else [], grounded)
+        return self._finish(key, reply, sources if grounded else [],
+                            grounded, meta)
 
-    def _finish(self, key: str, reply: str, sources: list, grounded: bool):
+    def _finish(self, key: str, reply: str, sources: list, grounded: bool,
+                prep: dict | None = None):
         out = {"reply": reply, "sources": sources, "grounded": grounded}
+        if prep:
+            out.update(prep)             # context_used / typos_fixed
         # never cache a non-answer — the corpus or threshold may improve later
         if grounded:
             self._cache[key] = out

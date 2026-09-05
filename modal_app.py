@@ -46,6 +46,8 @@ image = (
         "numpy",
         "openai",
         "chromadb",
+        "rapidfuzz",
+        "faiss-cpu",
     )
     .env({
         "EMBED_MODEL_PATH": EMBED_LOCAL,
@@ -58,6 +60,7 @@ image = (
         # tuned for bge-large: 0.35 let off-topic questions through
         "RELEVANCE_FLOOR": "0.55",
         "TOP_K": "3",
+        "DEBUG_LLM": "1",
         "TOKENIZERS_PARALLELISM": "false",
         # lock this to the real site origin before going live
         "ALLOWED_ORIGINS": "*",
