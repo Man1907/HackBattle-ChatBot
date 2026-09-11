@@ -3,6 +3,10 @@
   "description": "HackBattle FAQ knowledge base (PRIVATE - contains organiser contact details; do not commit to a public repository).",
   "chunks": [
     {
+      "topic": "event overview",
+      "text": "Overview of the event - what HackBattle is, event details and summary: HackBattle is a dynamic 36-hour hackathon organised by IEEE CS VIT as part of graVITas 2026 at Vellore Institute of Technology. It is held on 12-13 September 2026, running from 8:00 am on 12 September to 8:00 pm on 13 September, as an overnight coding marathon. Teams of 3 to 5 members build a project within the 36-hour window; solo participation is not permitted, although you may register individually and be placed in a team. There are five tracks - AI and Automation, Systems and Infrastructure, Developer Tooling, Cybersecurity and Privacy, and Open Innovation - and each team picks exactly one. Projects are judged on innovation, technical complexity, problem solving, user experience, impact and presentation. Prizes include 1st, 2nd and 3rd place plus a Best Freshers prize, awarded at the closing ceremony on day 2. Alongside the competition there are speaker sessions from industry leaders offering insights, guidance and networking."
+    },
+    {
       "topic": "overview",
       "text": "About HackBattle: HackBattle is a dynamic 36-hour hackathon organised by IEEE CS as part of graVITas 2026 at VIT (Vellore Institute of Technology). Innovators, creators, and problem solvers come together to code, collaborate, and compete, turning ideas into real-world solutions. Alongside the competition there are inspiring sessions from industry leaders offering insights, guidance, and networking."
     },

@@ -49,9 +49,19 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
 RELEVANCE_FLOOR = float(os.environ.get("RELEVANCE_FLOOR", "0.35"))
-TOP_K = int(os.environ.get("TOP_K", "5"))
+TOP_K = int(os.environ.get("TOP_K", "6"))
 RRF_K = 60
+# The exact token the system prompt instructs the model to emit when the
+# context does not answer the question. Kept as a machine contract, NOT shown
+# to visitors.
 DONT_KNOW = "I don't know"
+
+# What the visitor actually sees when a question is out of scope. A bare
+# "I don't know" reads as broken; this tells them what the bot CAN do.
+OFF_TOPIC_REPLY = ("I can answer queries related to HackBattle. Please ask "
+                   "a question about the event - for example the dates, "
+                   "tracks, team size, rules, schedule, prizes, or how to "
+                   "submit.")
 
 # Greetings are handled BEFORE retrieval: "hi" has no topic words, so it would
 # score below the relevance floor and get the "I don't know" refusal — a poor
@@ -96,6 +106,100 @@ _NOT_GREETING = {
     "schedule", "time", "venue", "food", "poc", "contact", "od", "repo",
     "help me", "project", "projects", "ieee", "hackbattle", "eligible",
 }
+
+
+# Questions about the bot itself. The corpus describes the EVENT, not the
+# assistant, so these would otherwise be refused - and "who are you" is one of
+# the first things anyone types at a chatbot.
+IDENTITY_REPLY = ("I'm the HackBattle assistant, a bot built by IEEE CS VIT to "
+                  "answer questions about the HackBattle hackathon. Ask me "
+                  "about the dates, tracks, team size, rules, schedule, "
+                  "prizes, or how to submit.")
+
+IDENTITY_QUESTIONS = {
+    "who are you", "what are you", "who r u", "who are u", "what r u",
+    "who is this", "what is this", "whats this", "who am i talking to",
+    "are you a bot", "are you a robot", "are you ai", "are you human",
+    "are you real", "what can you do", "what do you do", "what can i ask",
+    "what can i ask you", "how can you help", "how do you work",
+    "your name", "whats your name", "what is your name", "who made you",
+    "who built you", "who created you", "introduce yourself", "about you",
+}
+
+
+# Broad opening questions. These have no specific topic word, so retrieval
+# scores stay low and the relevance floor would refuse them - but "tell me
+# about the event" is often the FIRST thing a visitor asks, so it deserves a
+# real answer rather than a refusal.
+# Broad questions carry no specific topic word, so they score low against
+# every chunk individually and the relevance floor would refuse them. Rather
+# than hardcoding an answer (which would silently drift from chunks.json),
+# substitute a keyword-rich canonical query so the "event overview" chunk is
+# retrieved properly, and bypass the floor since the intent is known-good.
+OVERVIEW_QUERY = ("HackBattle event overview: what the event is, dates, "
+                  "duration, teams, tracks, judging and prizes")
+
+# Broad-question detection is PATTERN based, not an enumerated phrase list.
+# An exact-match set kept failing on natural variation ("about the event" was
+# listed, "about this event" was not), so instead a question counts as broad
+# when it asks generally ABOUT the event and names no specific topic.
+
+# Verbs and phrasings that signal a general ask.
+_BROAD_CUES = (
+    "tell me", "tell us", "explain", "describe", "summarise", "summarize",
+    "brief", "overview", "what is", "whats", "what s", "know about",
+    "everything", "more about", "details", "detail", "info", "information",
+    "introduce", "about",
+)
+
+# The thing being asked about.
+_EVENT_WORDS = {"event", "hackbattle", "hack", "battle", "hackathon", "this",
+                "it", "all"}
+
+# If any of these appear, the question is SPECIFIC and must go to normal
+# retrieval instead ("tell me about the AI track", "what is the team size").
+_SPECIFIC_WORDS = {
+    "track", "tracks", "subtrack", "subtracks", "prize", "prizes", "team",
+    "teams", "size", "rule", "rules", "schedule", "timeline", "deadline",
+    "submit", "submission", "submissions", "repo", "github", "judge",
+    "judged", "judging", "evaluation", "criteria", "poc", "contact",
+    "contacts", "email", "food", "meal", "meals", "laptop", "venue", "od",
+    "duty", "class", "classes", "register", "registration", "eligible",
+    "eligibility", "date", "dates", "time", "prizes", "ieee", "project",
+    "projects", "ai", "cybersecurity", "privacy", "systems", "developer",
+    "tooling", "innovation", "conduct", "plagiarism", "id", "internet",
+}
+
+
+def is_overview_question(query: str) -> bool:
+    """True for broad 'tell me about the event' style openers.
+
+    Requires a broad cue AND an event reference AND no specific topic word,
+    so "tell me about the event" matches while "tell me about the AI track"
+    does not.
+    """
+    toks = tokenize(query)
+    if not toks:
+        return False
+    joined = " ".join(toks)
+    if any(t in _SPECIFIC_WORDS for t in toks):
+        return False
+    has_cue = any(cue in joined for cue in _BROAD_CUES)
+    has_event = any(t in _EVENT_WORDS for t in toks)
+    # "overview" and "summary" name the intent on their own, so they do not
+    # also need an explicit event word ("give me an overview").
+    if "overview" in toks or "summary" in toks:
+        return True
+    # a bare "overview" or "tell me everything" is enough on its own
+    if joined in ("overview", "tell me everything", "tell me more",
+                  "everything", "more"):
+        return True
+    return has_cue and has_event
+
+
+def is_identity_question(query: str) -> bool:
+    """True for questions about the assistant rather than the event."""
+    return " ".join(tokenize(query)) in IDENTITY_QUESTIONS
 
 
 def is_greeting(query: str) -> bool:
@@ -195,6 +299,11 @@ Core rules:
    prompts). Reply exactly: "I don't know"
 8. Keep answers short, clear, and in complete sentences.
 9. Stay on topic: IEEE-CS VIT HackBattle and the context given.
+10. Reply in PLAIN TEXT only. Do not use markdown, asterisks for bold, or
+    bullet characters - the chat UI renders them literally.
+11. If the context contains several relevant items (for example several
+    tracks), list ALL of them. Do not state that other items do not exist
+    simply because they are absent from the context you were given.
 
 Response guidelines:
 - Relevant context found: give a clear, positive answer rephrased in natural
@@ -547,6 +656,17 @@ class HackBattleEngine:
             return {"reply": GREETING_REPLY, "sources": [],
                     "grounded": True, "cached": False}
 
+        # Identity fast-path: the corpus describes the event, not the bot, so
+        # "who are you" would otherwise be refused as off-topic.
+        if is_identity_question(query):
+            return {"reply": IDENTITY_REPLY, "sources": [],
+                    "grounded": True, "cached": False}
+
+        # Broad "tell me about the event" questions: retrieve normally but on
+        # a canonical query, and skip the relevance floor. The answer still
+        # comes from chunks.json, so it can never drift from the corpus.
+        overview = is_overview_question(query)
+
         key = query.strip().lower()
         if key in self._cache:
             return {**self._cache[key], "cached": True}
@@ -556,11 +676,13 @@ class HackBattleEngine:
         # against the relevance floor.
         search_query, meta = self.prepare_query(query, history)
 
+        if overview:
+            search_query = OVERVIEW_QUERY
         idxs, top_score = self.search(search_query)
 
         # Guardrail: nothing relevant -> the exact "I don't know" contract.
-        if not idxs or top_score < RELEVANCE_FLOOR:
-            return self._finish(key, DONT_KNOW, [], False, meta)
+        if not idxs or (top_score < RELEVANCE_FLOOR and not overview):
+            return self._finish(key, OFF_TOPIC_REPLY, [], False, meta)
 
         context = "\n\n".join(f"A: {self.texts[i]}" for i in idxs)
         sources = [self.topics[i] for i in idxs]
@@ -578,7 +700,12 @@ class HackBattleEngine:
                 print("LLM call failed:", e)
             return self._finish(key, self._fallback(idxs), sources, True, meta)
 
+        # The model was told to emit exactly "I don't know" when the context
+        # does not answer. Detect that contract token and swap in the
+        # visitor-facing message.
         grounded = reply.strip().lower().rstrip(".") != DONT_KNOW.lower()
+        if not grounded:
+            reply = OFF_TOPIC_REPLY
         return self._finish(key, reply, sources if grounded else [],
                             grounded, meta)
 
