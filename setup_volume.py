@@ -1,32 +1,27 @@
 """
-setup_volume.py — one-off Modal setup
-======================================
+setup_volume.py — one-off Modal setup (CHROMA variant)
+=======================================================
 
-Fills the persistent Volume with everything the serving app needs, so a
-starting container never downloads or rebuilds anything:
+Fills the Chroma Volume with everything the serving app needs:
+  1. download_model — the embedding model
+  2. build_index    — publishes chunks.json and builds the vector index
 
-  1. download_model — pulls the embedding model into the Volume
-  2. build_index    — embeds the chunks and writes the vector index into the
-                      Volume (the earlier version loaded an index that nothing
-                      ever created, which always failed at serve time)
+Every value is literal; nothing is read from your shell. The FAISS equivalent
+is setup_volume_faiss.py.
 
-NOTE ON PATHS: every path below is a plain forward-slash STRING, never a
-pathlib.Path. These are paths *inside the Linux container*. Building them with
-pathlib on Windows produces Windows-style separators, which makes the Modal
-image build fail with "UnrecognizedEscape: unrecognized escape sequence".
-
-Run once, before deploying:
+Run once before deploying:
     modal run setup_volume.py
 
-Re-run after editing CHUNKS in engine.py:
+Re-run after editing chunks.json:
     modal run setup_volume.py::build_index
 """
 
 import modal
 
+APP_NAME = "hackbattle-setup"
 VOLUME_NAME = "hackbattle-vol"
 
-# Container paths — Linux style, plain strings. Do not use pathlib here.
+# Container paths — Linux style, plain strings. Never build with pathlib.
 MODEL_DIR = "/models"
 EMBED_LOCAL = "/models/bge-large-en-v1.5"
 CHROMA_DIR = "/models/chroma"
@@ -44,50 +39,45 @@ download_image = (
 
 index_image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("sentence-transformers", "bm25s", "numpy", "chromadb", "faiss-cpu", "rapidfuzz")
+    .pip_install("sentence-transformers", "bm25s", "rapidfuzz",
+                 "numpy", "chromadb")
     .add_local_python_source("engine", "store")
-    # ship the local knowledge base into the image so build_index can copy it
-    # onto the Volume, where the serving app reads it
     .add_local_file("chunks.json", "/tmp/chunks.json")
 )
 
-app = modal.App("hackbattle-setup")
+app = modal.App(APP_NAME)
 
 
 @app.function(image=download_image, volumes={MODEL_DIR: volume}, timeout=1800)
 def download_model():
     from huggingface_hub import snapshot_download
     snapshot_download(repo_id=EMBED_REPO, local_dir=EMBED_LOCAL)
-    volume.commit()                # persist writes back to the Volume
+    volume.commit()
     print(f"Embedding model downloaded to {EMBED_LOCAL}")
 
 
 @app.function(image=index_image, volumes={MODEL_DIR: volume}, timeout=1800)
 def build_index():
-    """Embed the chunks and persist a Chroma collection into the Volume."""
     import os, shutil
-
-    # publish the knowledge base onto the Volume so the serving app reads it
     shutil.copyfile("/tmp/chunks.json", CHUNKS_FILE)
 
     os.environ["EMBED_MODEL_PATH"] = EMBED_LOCAL
-    os.environ["VECTOR_STORE"] = "chroma"
+    os.environ["VECTOR_STORE"] = "chroma"        # literal
     os.environ["CHROMA_DIR"] = CHROMA_DIR
     os.environ["CHUNKS_PATH"] = CHUNKS_FILE
-    os.environ["LLM_BACKEND"] = "none"      # no LLM needed just to index
+    os.environ["LLM_BACKEND"] = "none"           # no LLM needed to index
 
     from engine import HackBattleEngine, load_chunks
     chunks = load_chunks(CHUNKS_FILE)
-    engine = HackBattleEngine()             # embeds + upserts on construction
+    engine = HackBattleEngine()
     count = engine.store.count()
     volume.commit()
-    print(f"Index built: {count} chunks (expected {len(chunks)}) at {CHROMA_DIR}")
+    print(f"Index built [chroma]: {count} chunks (expected {len(chunks)})")
     print(f"Knowledge base published to {CHUNKS_FILE}")
 
 
 @app.local_entrypoint()
 def main():
-    """modal run setup_volume.py — runs both steps in order."""
     download_model.remote()
     build_index.remote()
     print("Setup complete. Next: modal deploy modal_app.py")

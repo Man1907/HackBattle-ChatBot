@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "description": "HackBattle FAQ knowledge base. Each chunk is self-contained and starts with its topic label. Abbreviations (POC, OD, repo) and colloquial phrasings are included so keyword search matches how people actually ask. Replace <email> with the real address.",
+  "description": "HackBattle FAQ knowledge base (PRIVATE - contains organiser contact details; do not commit to a public repository).",
   "chunks": [
     {
       "topic": "overview",
@@ -8,7 +8,7 @@
     },
     {
       "topic": "dates and duration",
-      "text": "Dates, timing and duration: HackBattle is a 36-hour hackathon held on 12-13 September 2026. It starts at 8:00 am on 12 September and ends at 8:00 pm on 13 September 2026. It is an overnight coding marathon."
+      "text": "Dates, timing and duration of the event: HackBattle is a 36-hour hackathon held on 12-13 September 2026. The event starts at 8:00 am on 12 September and ends at 8:00 pm on 13 September 2026. It is an overnight coding marathon. When is the event: 12 and 13 September 2026."
     },
     {
       "topic": "team size and eligibility",
@@ -44,7 +44,7 @@
     },
     {
       "topic": "contacts",
-      "text": "Point of contact (POC) and contact details: For any questions about HackBattle, contact the respective host team at <email>. The POCs are the organizing team from IEEE CS. Reach out to the organisers by email for queries about registration, rules, or logistics."
+      "text": "Point of contact (POC) and contact details: The POCs for HackBattle are Aniket Bhayana (24BCE2989), phone 8861924025; Gracy Mehndiratta (24BCE2987), phone 8700945939; and Vishal Kumar Pradhwani (24BCE0766), phone 7029412141. Reach out to these organisers for queries about registration, rules, or logistics."
     },
     {
       "topic": "classes and on-duty",
@@ -57,6 +57,66 @@
     {
       "topic": "schedule day 2",
       "text": "Provisional schedule, day 2 (13 September 2026, times tentative): Hacking continues into the morning; Review 3 around 12:00-1:00 pm; Lunch break 1:00-2:00 pm; Integration of the work 2:00-4:00 pm; Final team pitches 4:00-6:00 pm; Results announcement and closing ceremony 6:00-8:00 pm."
+    },
+    {
+      "topic": "tracks overview",
+      "text": "Tracks and themes overview: HackBattle has five tracks. Each team must select exactly ONE track. Within that track, teams may choose one or more subtracks for their project. Subtrack descriptions are ideas and possible directions only, not exhaustive or prescriptive - teams are free to explore any project that fits the broader theme of their chosen subtrack. The five tracks are: Track 1 AI and Automation; Track 2 Systems and Infrastructure; Track 3 Developer Tooling; Track 4 Cybersecurity and Privacy; Track 5 Open Innovation."
+    },
+    {
+      "topic": "track 1 ai and automation",
+      "text": "Track 1, AI and Automation track: the AI and Automation track challenges teams to rescue AI from the chat window - give it hands, memory, and a sense of boundaries so it can interact with the real world without constant supervision. Subtracks of the AI and Automation track: Agentic Workflows (AI that can plan, trigger external APIs, and execute multi-step tasks autonomously); Self-Learning and Adaptation (models that keep learning as the underlying data changes, adapting to new patterns without retraining from scratch); Guardrails and Trust (filters, evaluation harnesses, or honeypots that keep model outputs safe, accurate and aligned)."
+    },
+    {
+      "topic": "track 2 systems and infrastructure",
+      "text": "Track 2, Systems and Infrastructure: The challenge is to engineer the invisible plumbing - tools that make deploying code faster, networks more resilient, or data syncing seamless when the connection drops. Subtracks: Cloud and Deployment Automation (scripts or platforms that remove manual server management and automate release cycles); Decentralization and Protocols (peer-to-peer file sharing, custom network layers, localized communication tools, custom proxies, or tools that keep data flowing when the connection drops); Core Systems and Data Engines (lightweight caching systems, fast data synchronizers, custom local storage engines, or OS-level work such as system utilities and micro-schedulers)."
+    },
+    {
+      "topic": "track 3 developer tooling",
+      "text": "Track 3, Developer Tooling: The challenge is to build the tools you wish you had at 3 AM when your codebase was on fire. Subtracks: Terminal and Shell Tooling (command-line utilities, shell enhancements, scripting frameworks, or custom dev-environment plugins); Codebase Intelligence and Navigation (assistants, AI or algorithmic, that help engineers understand and move through large codebases - dependency mappers, semantic code search, refactoring aids, or repo-wide Q&A tools); Workflow and Context Management (tools that eliminate context-switching, such as workspace orchestrators, smart snippet managers, or local automation engines)."
+    },
+    {
+      "topic": "track 4 cybersecurity and privacy",
+      "text": "Track 4, Cybersecurity and Privacy track: the cybersecurity track challenges teams to lock down the digital ecosystem - protect the user, assume the network is already hostile, or expose invisible data-harvesting. Subtracks of the Cybersecurity and Privacy track: Local-First Privacy (applications where sensitive data never leaves the device, such as offline password managers, private on-device AI assistants, or encrypted personal knowledge bases); Defense and Sandboxing (systems treating every application, file and network as untrusted by default - browser sandboxing tools, suspicious file detonation environments, permission-aware firewalls, malware analysis sandboxes); Surveillance Transparency (browser extensions, local proxies, or analysis tools that expose hidden telemetry and show what a site is harvesting, from shadow cookies to ETag tracking)."
+    },
+    {
+      "topic": "track 5 open innovation",
+      "text": "Track 5, Open Innovation: If none of the other tracks appeal, this is the open playground to build something completely new. Teams can wire up Hardware and IoT, work with AR/VR, explore Web3, craft an immersive game, or build something that defies categories. This track has NO fixed subtracks and teams are free to choose their own path."
+    },
+    {
+      "topic": "about ieee cs vit",
+      "text": "What is IEEE CS VIT: IEEE CS VIT is the IEEE Computer Society student chapter at Vellore Institute of Technology (VIT), and is the organiser of HackBattle. Founded in 2012, IEEE CS VIT operates as part of IEEE Region 10 and the Madras Section. IEEE CS VIT is a student-driven technology community focused on computer science and emerging technologies, where members learn, experiment, collaborate and build practical solutions. IEEE CS VIT is not merely an event-organizing club: its identity also includes technical project development, experimentation, collaboration and practical technology education."
+    },
+    {
+      "topic": "what ieee cs vit does",
+      "text": "What IEEE CS VIT does: its activities cover building technology projects; organizing technical events and competitions such as hackathons, cybersecurity challenges, coding competitions and machine-learning competitions; conducting workshops and learning initiatives; working on real-world technical problems; collaborating with external organizations; and giving students opportunities to develop practical technical skills. Areas of activity include software development, artificial intelligence and machine learning, web and application development, cybersecurity, and competitive programming."
+    },
+    {
+      "topic": "ieee cs vit projects overview",
+      "text": "IEEE CS VIT projects overview: the chapter has five notable projects - the Kalaburagi Airport Project with the Airports Authority of India; the Financial Insights Analyzer and Summarizer with the NFRA; Chota Dhobi, a hostel laundry app; the Pravega Racing web app; and AssignoFast, a student academic task manager. Some are developed by IEEE CS VIT and others are collaborations or external competition entries."
+    },
+    {
+      "topic": "project kalaburagi airport",
+      "text": "Kalaburagi Airport Project: IEEE CS VIT collaborated with the Airports Authority of India (AAI) on a technology project to modernize and streamline airport operations and services. The work involved Management Information Systems (MIS) and Multimodal Transport Systems. This was an external, industry-facing collaboration involving airport infrastructure and transportation management."
+    },
+    {
+      "topic": "project financial insights analyzer",
+      "text": "Financial Insights Analyzer and Summarizer: IEEE CS VIT worked on this project in collaboration with the National Financial Reporting Authority (NFRA). It focused on analyzing financial information and generating summarized insights. IEEE CS VIT entered it at Techkriti, the annual technical festival of IIT Kanpur, where it secured 2nd place and a prize of Rs 1,00,000. This was an external competition and collaboration rather than an internal application."
+    },
+    {
+      "topic": "project chota dhobi",
+      "text": "Chota Dhobi: a laundry-management application developed by IEEE CS VIT for VIT hostels. It was designed to make hostel laundry operations more organized and efficient for students. According to IEEE CS VIT, the application served approximately 50,000 users. This is an example of an IEEE CS VIT-developed application deployed within the VIT ecosystem."
+    },
+    {
+      "topic": "project pravega racing web app",
+      "text": "Pravega Racing web app: IEEE CS VIT collaborated with Pravega Racing to help develop its web application. The app was built to give the racing team a fast, responsive and visually polished web experience, with an emphasis on accessibility and global connectivity. This was a collaborative development project rather than a project owned entirely by IEEE CS VIT."
+    },
+    {
+      "topic": "project assignofast",
+      "text": "AssignoFast: a student productivity and academic task-management system developed by IEEE CS VIT. It helps students manage assignments, deadlines, timetables and academic tasks in one place. Capabilities include synchronization of assignments from VTOP, timetable synchronization, assignment and deadline tracking, notifications and reminders, personal task management, support for Moodle quizzes, a Chrome extension and a mobile application. It is designed around the academic workflow of VIT students."
+    },
+    {
+      "topic": "ieee cs vit techfest win",
+      "text": "IIT Bombay Techfest first place: IEEE CS VIT built a Hybrid Voice Security System that fuses Wav2Vec 2.0 with Kolmogorov-Arnold Networks (KANs) and Graph Attention to detect complex deepfake artifacts. The microservice was integrated into a VLM-driven agentic framework enabling secure transactions. This won first place at IIT Bombay Techfest."
     }
   ]
 }
