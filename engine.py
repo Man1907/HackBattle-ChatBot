@@ -53,6 +53,74 @@ TOP_K = int(os.environ.get("TOP_K", "5"))
 RRF_K = 60
 DONT_KNOW = "I don't know"
 
+# Greetings are handled BEFORE retrieval: "hi" has no topic words, so it would
+# score below the relevance floor and get the "I don't know" refusal — a poor
+# first impression when someone opens the widget. Matching here also means no
+# search and no LLM call, so the reply is instant and costs nothing.
+GREETING_REPLY = "Hello, welcome to HackBattle! What can I help you with?"
+
+# Exact-match set (after tokenising). Kept to unambiguous openers so a real
+# question is never swallowed: "what's up" is a greeting, "what's the team
+# size" is not.
+# Whole-message greetings. Matched exactly, after tokenising.
+GREETINGS = {
+    "hi", "hii", "hiii", "hey", "heyy", "heyyy", "hello", "helo", "hullo",
+    "yo", "hiya", "howdy", "greetings", "sup", "wassup", "whatsup",
+    "good morning", "good afternoon", "good evening", "good day", "gm", "ge",
+    "whats up", "what s up", "what up", "how are you", "how are u",
+    "how r u", "how do you do", "hows it going", "how is it going",
+    "how are things", "namaste", "hola", "start", "help", "menu",
+    "thanks", "thank you", "thankyou", "ty", "ok thanks", "okay thanks",
+}
+
+# Words that START a greeting. A short message beginning with one of these is
+# treated as a greeting even if the exact phrase is not listed above, so
+# "hello buddy", "hey mate" and "yo dude" all work without enumerating every
+# form of address.
+GREETING_OPENERS = {
+    "hi", "hii", "hiii", "hey", "heyy", "heyyy", "hello", "helo", "hullo",
+    "yo", "hiya", "howdy", "greetings", "sup", "namaste", "hola",
+}
+
+# Above this many tokens a message is assumed to carry a real question, so it
+# goes to retrieval even if it opens with a greeting. Keeps "hi when is the
+# event" and "hello can I join alone" working.
+GREETING_MAX_TOKENS = 3
+
+# Words that mean the message is a QUESTION even though it is short and opens
+# with a greeting — e.g. "hey prizes?" should retrieve, not just say hello.
+_NOT_GREETING = {
+    "event", "date", "dates", "when", "where", "what", "who", "how", "why",
+    "prize", "prizes", "team", "teams", "track", "tracks", "register",
+    "registration", "rules", "rule", "deadline", "submit", "submission",
+    "schedule", "time", "venue", "food", "poc", "contact", "od", "repo",
+    "help me", "project", "projects", "ieee", "hackbattle", "eligible",
+}
+
+
+def is_greeting(query: str) -> bool:
+    """True when the message is ONLY a greeting.
+
+    Two ways to match:
+      1. the whole tokenised message is a known greeting ("hi", "good morning")
+      2. it OPENS with a greeting word and is short enough to carry no question
+         ("hello buddy", "hey there mate")
+
+    Anything containing a topic word is never a greeting, so "hey prizes?"
+    still goes to retrieval.
+    """
+    toks = tokenize(query)
+    if not toks:
+        return False
+    joined = " ".join(toks)
+    if joined in GREETINGS:
+        return True
+    if toks[0] in GREETING_OPENERS and len(toks) <= GREETING_MAX_TOKENS:
+        # short and starts with a greeting — but not if it names a topic
+        return not any(t in _NOT_GREETING for t in toks)
+    return False
+
+
 # bge models are trained with an instruction prefix on the QUERY side only
 # (documents are embedded as-is). Omitting it measurably degrades retrieval.
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
@@ -473,6 +541,12 @@ class HackBattleEngine:
     def answer(self, query: str, history: list | None = None) -> dict:
         # Cache FIRST, keyed on the raw input: a repeated question must not pay
         # for the rewrite call again.
+        # Greeting fast-path: answer before retrieval so "hi" gets a welcome
+        # rather than the off-topic refusal. No search, no LLM call.
+        if is_greeting(query):
+            return {"reply": GREETING_REPLY, "sources": [],
+                    "grounded": True, "cached": False}
+
         key = query.strip().lower()
         if key in self._cache:
             return {**self._cache[key], "cached": True}
